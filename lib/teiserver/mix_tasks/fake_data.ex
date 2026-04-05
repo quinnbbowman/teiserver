@@ -11,14 +11,13 @@ defmodule Mix.Tasks.Teiserver.Fakedata do
   require Logger
 
   @settings %{
-    # days: 365,
     days: 5,
     memory: 1024 * 1024 * 1024,
     maps: ["Koom valley", "Comet catcher", "Tabula"]
   }
 
-  defp matches_per_day, do: :rand.uniform(5) + 2
-  defp users_per_day, do: :rand.uniform(5) + 2
+  defp matches_per_day, do: :rand.uniform(3)+2
+  defp users_per_day, do: :rand.uniform(3)+2
 
   @spec run(list()) :: :ok
   def run(_args) do
@@ -35,6 +34,7 @@ defmodule Mix.Tasks.Teiserver.Fakedata do
 
     # Add fake playtime data to all our non-bot users
     Mix.Task.run("teiserver.fake_playtime")
+    Mix.Task.run("teiserver.fake_smurfkeys")
 
     :timer.sleep(50)
 
@@ -61,6 +61,25 @@ defmodule Mix.Tasks.Teiserver.Fakedata do
     user
   end
 
+
+  defp add_moderator_user() do
+    {:ok, user} =
+      Account.create_user(%{
+        name: "moderator",
+        email: "moderator@localhost",
+        password: Account.spring_md5_password("password"),
+        roles: ["Verified","Moderator"],
+        permissions: ["Verified", "Moderator", "Reviewer", "Overwatch", "BAR+", "Contributor", "Trusted", "Tester", "Blog helper"],
+        icon: "fa-solid",
+        colour: "#de1776",
+        data: %{
+          lobby_client: "FakeData"
+        }
+      })
+
+    user
+  end
+
   @doc """
   Uses :application_metadata_cache store to generate a random username
   based on the keys random_names_1, random_names_2 and random_names_3
@@ -77,8 +96,11 @@ defmodule Mix.Tasks.Teiserver.Fakedata do
     |> Enum.map_join(" ", fn l -> Enum.random(l) |> String.capitalize() end)
   end
 
-  defp make_accounts() do
+  #generate fake_smurfkeys
+
+  defp make_accounts() do # here i want to add a bunch of hardware/smurf keys at varying times.  #let's just add like 1 unique key per user
     root_user = add_root_user()
+    add_moderator_user()
 
     new_users =
       Range.new(0, @settings.days)
@@ -116,6 +138,7 @@ defmodule Mix.Tasks.Teiserver.Fakedata do
   end
 
   defp make_telemetry() do
+
     # First we need to make by the minute telemetry data
     Range.new(0, @settings.days)
     |> Enum.each(fn day ->
